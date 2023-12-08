@@ -1,13 +1,9 @@
 package com.openclassrooms.tourguide.service;
 
-import com.openclassrooms.tourguide.helper.InternalTestHelper;
-import com.openclassrooms.tourguide.tracker.Tracker;
-import com.openclassrooms.tourguide.user.User;
-import com.openclassrooms.tourguide.user.UserReward;
-
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +11,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -22,11 +25,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.openclassrooms.tourguide.helper.InternalTestHelper;
+import com.openclassrooms.tourguide.tracker.Tracker;
+import com.openclassrooms.tourguide.user.User;
+import com.openclassrooms.tourguide.user.UserReward;
+
 import gpsUtil.GpsUtil;
-import gpsUtil.location.Attraction;
 import gpsUtil.location.Location;
 import gpsUtil.location.VisitedLocation;
-
 import tripPricer.Provider;
 import tripPricer.TripPricer;
 
@@ -95,17 +101,70 @@ public class TourGuideService {
 		return visitedLocation;
 	}
 
-	public List<Attraction> getNearByAttractions(VisitedLocation visitedLocation) {
-		List<Attraction> nearbyAttractions = new ArrayList<>();
-		for (Attraction attraction : gpsUtil.getAttractions()) {
-			if (rewardsService.isWithinAttractionProximity(attraction, visitedLocation.location)) {
-				nearbyAttractions.add(attraction);
-			}
-		}
+	public List<Map<String, Object>> getNearByAttractions(User user) {
+        VisitedLocation visitedLocation = getUserLocation(user);
+        List<Map<String, Object>> closestAttractions = new CopyOnWriteArrayList<>();
 
-		return nearbyAttractions;
-	}
+        // Use ExecutorService to parallelize attraction distance calculations
+        ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4);
 
+        try {
+            List<Callable<Map<String, Object>>> callables = new ArrayList<>();
+
+            gpsUtil.getAttractions().parallelStream()
+                    .sorted(Comparator.comparingDouble(attraction -> rewardsService.getDistance(attraction, visitedLocation.location)))
+                    .limit(5)
+                    .forEach(attraction -> {
+                        callables.add(() -> {
+                            double distance = rewardsService.getDistance(attraction, visitedLocation.location);
+                            int rewardPoints = rewardsService.getRewardPoints(attraction, user);
+
+                            String attractionName = attraction.attractionName;
+                            double attractionLatitude = attraction.latitude;
+                            double attractionLongitude = attraction.longitude;
+                            double userLatitude = visitedLocation.location.latitude;
+                            double userLongitude = visitedLocation.location.longitude;
+
+                            Map<String, Object> attractionMap = new ConcurrentHashMap<>();
+                            attractionMap.put("name", attractionName);
+                            attractionMap.put("attractionLatitude", attractionLatitude);
+                            attractionMap.put("attractionLongitude", attractionLongitude);
+                            attractionMap.put("userLatitude", userLatitude);
+                            attractionMap.put("userLongitude", userLongitude);
+                            attractionMap.put("distance", distance);
+                            attractionMap.put("rewardPoints", rewardPoints);
+
+                            return attractionMap;
+                        });
+                    });
+
+            List<Future<Map<String, Object>>> futures = executorService.invokeAll(callables);
+
+            for (Future<Map<String, Object>> future : futures) {
+                Map<String, Object> attractionMap = future.get();
+                closestAttractions.add(attractionMap);
+            }
+
+            // Sort the result based on distance
+            closestAttractions.sort(Comparator.comparingDouble(attraction -> (Double) attraction.get("distance")));
+
+            System.out.println("Closest Attractions: ");
+            closestAttractions.forEach(attraction -> {
+                System.out.println("Attraction: " + attraction.get("name"));
+                System.out.println("Distance: " + attraction.get("distance") + " miles");
+                System.out.println("Reward Points: " + attraction.get("rewardPoints"));
+                System.out.println("----------------------");
+            });
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        } finally {
+            // Shutdown the executor service
+            executorService.shutdown();
+        }
+
+        return closestAttractions;
+    }
+	
 	private void addShutDownHook() {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
