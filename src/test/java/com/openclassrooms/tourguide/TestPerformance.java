@@ -60,14 +60,11 @@ public class TestPerformance {
 
 	    InternalTestHelper.setInternalUserNumber(userNumber);
 
-	    // Create TourGuideService
 	    TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
 
 	    List<User> allUsers = tourGuideService.getAllUsers();
 
-	    // Create an ExecutorService with a larger thread pool
-	    int poolSize = Runtime.getRuntime().availableProcessors() * 4; // Twice the number of available processors
-	    ExecutorService executorService = Executors.newFixedThreadPool(poolSize);
+	    ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 10);
 
 	    StopWatch stopWatch = new StopWatch();
 	    stopWatch.start();
@@ -80,11 +77,10 @@ public class TestPerformance {
 	    CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
 
 	    try {
-	        allOf.join(); // Use join instead of get to handle interruptions
+	        allOf.join(); // Utilisez join au lieu de get pour gérer les interruptions
 	    } catch (CompletionException e) {
 	        e.printStackTrace();
 	    } finally {
-	        // Graceful shutdown
 	        executorService.shutdown();
 	        try {
 	            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -113,12 +109,10 @@ public class TestPerformance {
 
 	    InternalTestHelper.setInternalUserNumber(userNumber);
 
-	    // Create TourGuideService
 	    TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
 
 	    Attraction attraction = gpsUtil.getAttractions().get(0);
 
-	    // Add visited locations for all users
 	    List<User> allUsers = new ArrayList<>(tourGuideService.getAllUsers());
 	    allUsers.forEach(u -> u.addToVisitedLocations(new VisitedLocation(u.getUserId(), attraction, new Date())));
 
@@ -128,7 +122,6 @@ public class TestPerformance {
 	    for (User user : allUsers) {
 	        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> rewardsService.calculateRewards(user))
 	                .thenAccept(ignoredResult -> {
-	                    // Additional logic if needed
 	                });
 	        futures.add(future);
 	    }
@@ -138,8 +131,11 @@ public class TestPerformance {
 
 	    try {
 	        allOf.get(); // Block until all futures are completed
-	    } catch (InterruptedException | ExecutionException e) {
+	    } catch (InterruptedException e) {
 	        e.printStackTrace();
+	    } catch (ExecutionException e) {
+	        Throwable realException = e.getCause();
+	        realException.printStackTrace();
 	    }
 
 	    // Validate results

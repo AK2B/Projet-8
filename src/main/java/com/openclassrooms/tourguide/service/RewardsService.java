@@ -46,7 +46,7 @@ public class RewardsService {
 	    List<VisitedLocation> userLocations = user.getVisitedLocations();
 	    List<Attraction> attractions = gpsUtil.getAttractions();
 
-	    ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4);
+	    ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*10 );
 
 	    try {
 	        List<CompletableFuture<Void>> futures = userLocations.parallelStream()
@@ -64,7 +64,6 @@ public class RewardsService {
 	        allOf.join(); // Use join instead of get to handle interruptions
 
 	    } finally {
-	        // Graceful shutdown
 	        executorService.shutdown();
 	        try {
 	            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
