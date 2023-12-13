@@ -77,7 +77,7 @@ public class TestPerformance {
 	    CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
 
 	    try {
-	        allOf.join(); // Utilisez join au lieu de get pour gérer les interruptions
+	        allOf.join();
 	    } catch (CompletionException e) {
 	        e.printStackTrace();
 	    } finally {

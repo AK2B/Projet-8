@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -96,29 +95,27 @@ public class TourGuideService {
 	}
 
 	public List<Map<String, Object>> getNearByAttractions(User user) {
-	    VisitedLocation visitedLocation = getUserLocation(user);
-	    List<Map<String, Object>> closestAttractions = new CopyOnWriteArrayList<>();
+        VisitedLocation visitedLocation = getUserLocation(user);
 
-	    // Use parallelStream to parallelize attraction distance calculations
-	    gpsUtil.getAttractions().parallelStream()
-	            .sorted(Comparator.comparingDouble(attraction -> rewardsService.getDistance(attraction, visitedLocation.location)))
-	            .limit(5)
-	            .forEach(attraction -> {
-	                
-	                Map<String, Object> attractionMap = new ConcurrentHashMap<>();
-	                attractionMap.put("name", attraction.attractionName);
-	                attractionMap.put("attractionLatitude", attraction.latitude);
-	                attractionMap.put("attractionLongitude", attraction.longitude);
-	                attractionMap.put("userLatitude", visitedLocation.location.latitude);
-	                attractionMap.put("userLongitude", visitedLocation.location.longitude);
-	                attractionMap.put("distance", rewardsService.getDistance(attraction, visitedLocation.location));
-	                attractionMap.put("rewardPoints", rewardsService.getRewardPoints(attraction, user));
+        // Use parallelStream to parallelize attraction distance calculations
+        List<Map<String, Object>> closestAttractions = gpsUtil.getAttractions().parallelStream()
+                .sorted(Comparator.comparingDouble(attraction -> rewardsService.getDistance(attraction, visitedLocation.location)))
+                .limit(5)
+                .map(attraction -> {
+                    Map<String, Object> attractionMap = new ConcurrentHashMap<>();
+                    attractionMap.put("name", attraction.attractionName);
+                    attractionMap.put("attractionLatitude", attraction.latitude);
+                    attractionMap.put("attractionLongitude", attraction.longitude);
+                    attractionMap.put("userLatitude", visitedLocation.location.latitude);
+                    attractionMap.put("userLongitude", visitedLocation.location.longitude);
+                    attractionMap.put("distance", rewardsService.getDistance(attraction, visitedLocation.location));
+                    attractionMap.put("rewardPoints", rewardsService.getRewardPoints(attraction, user));
+                    return attractionMap;
+                })
+                .collect(Collectors.toList());
 
-	                closestAttractions.add(attractionMap);
-	            });
-
-	    return closestAttractions;
-	}
+        return closestAttractions;
+    }
 
 	
 	private void addShutDownHook() {
