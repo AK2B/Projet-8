@@ -94,7 +94,17 @@ public class TourGuideService {
 		return visitedLocation;
 	}
 
-	public List<Map<String, Object>> getNearByAttractions(User user) {
+	/**
+     * Gets the closest five tourist attractions to the user - no matter how far away they are.
+     *
+     * @param user The user for whom to find nearby attractions.
+     * @return A list of maps representing nearby attractions with information such as name,
+     *         latitude, longitude, distance from the user, and reward points.
+     */
+    public List<Map<String, Object>> getNearByAttractions(User user) {
+        logger.debug("Getting nearby attractions for user: {}", user.getUserName());
+
+        // Get the current location of the user
         VisitedLocation visitedLocation = getUserLocation(user);
 
         // Use parallelStream to parallelize attraction distance calculations
@@ -102,6 +112,7 @@ public class TourGuideService {
                 .sorted(Comparator.comparingDouble(attraction -> rewardsService.getDistance(attraction, visitedLocation.location)))
                 .limit(5)
                 .map(attraction -> {
+                    // Create a map to represent an attraction with specific information
                     Map<String, Object> attractionMap = new ConcurrentHashMap<>();
                     attractionMap.put("name", attraction.attractionName);
                     attractionMap.put("attractionLatitude", attraction.latitude);
@@ -114,10 +125,11 @@ public class TourGuideService {
                 })
                 .collect(Collectors.toList());
 
+        logger.debug("Found {} nearby attractions for user: {}", closestAttractions.size(), user.getUserName());
+
         return closestAttractions;
     }
 
-	
 	private void addShutDownHook() {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
