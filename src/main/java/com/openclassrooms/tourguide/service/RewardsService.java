@@ -47,37 +47,31 @@ public class RewardsService {
 	}
 	
 	/**
-	 * Asynchronously calculates rewards for a user based on their visited locations and attractions.
+	 * Calculate rewards for a user based on their visited locations and attractions. 
+	 * Rewards are calculated asynchronously using CompletableFuture and ExecutorService.
 	 *
 	 * @param user The user for whom to calculate rewards.
 	 */
 	public void calculateRewards(User user) {
 	    List<VisitedLocation> userLocations = user.getVisitedLocations();
-	    
 	    List<Attraction> attractions = gpsUtil.getAttractions();
 
 	    ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
 	    try {
-	        // Create a list of CompletableFuture to represent asynchronous reward calculation tasks
 	        List<CompletableFuture<Void>> futures = userLocations.parallelStream()
 	                .flatMap(visitedLocation ->
 	                        attractions.stream()
 	                                .filter(attraction -> user.getUserRewards().stream()
 	                                        .noneMatch(r -> r.attraction.attractionName.equals(attraction.attractionName)))
 	                                .filter(attraction -> nearAttraction(visitedLocation, attraction))
-	                                .map(attraction -> CompletableFuture.runAsync(() -> {
-	                                    // Asynchronously calculate and add the reward for the user
-	                                    user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
-	                                    // Log the reward calculation for the user and attraction
-	                                    logger.debug("Calculated reward for user {} at attraction {}: {} points",
-	                                            user.getUserName(), attraction.attractionName, getRewardPoints(attraction, user));
-	                                }, executorService)))
+	                                .map(attraction -> CompletableFuture.runAsync(() ->
+	                                        user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user))),
+	                                        executorService)))
 	                .collect(Collectors.toList());
 
-	        // Wait for all CompletableFuture tasks to complete
 	        CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-	        allOf.join();
+	        allOf.join(); 
 
 	    } finally {
 	        executorService.shutdown();
