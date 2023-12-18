@@ -31,7 +31,7 @@ public class RewardsService {
 	private int attractionProximityRange = 200;
 	private final GpsUtil gpsUtil;
 	private final RewardCentral rewardsCentral;
-
+	
 	
 	public RewardsService(GpsUtil gpsUtil, RewardCentral rewardCentral) {
 		this.gpsUtil = gpsUtil;
@@ -56,7 +56,7 @@ public class RewardsService {
 	    List<VisitedLocation> userLocations = user.getVisitedLocations();
 	    List<Attraction> attractions = gpsUtil.getAttractions();
 
-	    ExecutorService executorService = Executors.newFixedThreadPool(100);
+	    ExecutorService executorService = Executors.newCachedThreadPool();
 
 	    try {
 	        List<CompletableFuture<Void>> futures = userLocations.parallelStream()
@@ -66,9 +66,7 @@ public class RewardsService {
 	                                        .noneMatch(r -> r.attraction.attractionName.equals(attraction.attractionName)))
 	                                .filter(attraction -> nearAttraction(visitedLocation, attraction))
 	                                .map(attraction -> CompletableFuture.runAsync(() -> {
-	                                        logger.debug("Calculating rewards for user " + user.getUserId() + ", attraction " + attraction.attractionName);
 	                                        user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
-	                                        logger.debug("Rewards calculated for user " + user.getUserId() + ", attraction " + attraction.attractionName);
 	                                }, executorService)))
 	                .collect(Collectors.toList());
 

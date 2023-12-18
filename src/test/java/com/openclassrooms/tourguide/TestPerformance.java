@@ -25,7 +25,7 @@ public class TestPerformance {
 
 
 	@ParameterizedTest
-	@ValueSource(ints = {100, 1000})
+	@ValueSource(ints = {100, 1000, 5000, 10000, 50000, 100000})
 	public void highVolumeTrackLocation(int userNumber) {
 	    GpsUtil gpsUtil = new GpsUtil();
 	    RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());

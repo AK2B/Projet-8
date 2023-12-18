@@ -11,11 +11,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -42,11 +41,15 @@ public class TourGuideService {
 	private final TripPricer tripPricer = new TripPricer();
 	public final Tracker tracker;
 	boolean testMode = true;
+    private final ExecutorService trackingExecutorService;
 
+    private static final int NEARBY_ATTRACTIONS_LIMIT = 5;
+    
 	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
 		this.gpsUtil = gpsUtil;
 		this.rewardsService = rewardsService;
-		
+        this.trackingExecutorService = Executors.newCachedThreadPool();
+
 		Locale.setDefault(Locale.US);
 
 		if (testMode) {
@@ -93,33 +96,19 @@ public class TourGuideService {
 	}
 
 	public VisitedLocation trackUserLocation(User user) {
-	    ExecutorService executorService = Executors.newFixedThreadPool(100);
-
-	    CompletableFuture<VisitedLocation> future = CompletableFuture.supplyAsync(() -> {
-	        VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
-	        user.addToVisitedLocations(visitedLocation);
-	        if (visitedLocation != null) {
-	            rewardsService.calculateRewards(user);
-	        }
-	        return visitedLocation;
-	    }, executorService);
-
 	    try {
-	        // Attendez la fin de la tâche asynchrone
-	        VisitedLocation visitedLocation = future.get();
-	        return visitedLocation;
-	    } catch (InterruptedException | ExecutionException e) {
-	        throw new RuntimeException(e);
-	    } finally {
-	        executorService.shutdown();
-	        try {
-	            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
-	                executorService.shutdownNow();
+	        CompletableFuture<VisitedLocation> future = CompletableFuture.supplyAsync(() -> {
+	            VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
+	            user.addToVisitedLocations(visitedLocation);
+	            if (visitedLocation != null) {
+	                rewardsService.calculateRewards(user);
 	            }
-	        } catch (InterruptedException e) {
-	            executorService.shutdownNow();
-	            Thread.currentThread().interrupt();
-	        }
+	            return visitedLocation;
+	        }, trackingExecutorService);
+
+	        return future.join();
+	    } catch (CompletionException e) {
+	        throw new RuntimeException(e);
 	    }
 	}
 	
@@ -128,7 +117,7 @@ public class TourGuideService {
      *
      * @param user The user for whom to find nearby attractions.
      * @return A list of maps representing nearby attractions with information such as name,
-     *         latitude, longitude, distance from the user, and reward points.
+     * latitude, longitude, distance from the user, and reward points.
      */
     public List<Map<String, Object>> getNearByAttractions(User user) {
         logger.debug("Getting nearby attractions for user: {}", user.getUserName());
@@ -139,7 +128,7 @@ public class TourGuideService {
         // Use parallelStream to parallelize attraction distance calculations
         List<Map<String, Object>> closestAttractions = gpsUtil.getAttractions().parallelStream()
                 .sorted(Comparator.comparingDouble(attraction -> rewardsService.getDistance(attraction, visitedLocation.location)))
-                .limit(5)
+                .limit(NEARBY_ATTRACTIONS_LIMIT)
                 .map(attraction -> {
                     // Create a map to represent an attraction with specific information
                     Map<String, Object> attractionMap = new ConcurrentHashMap<>();
@@ -158,6 +147,7 @@ public class TourGuideService {
 
         return closestAttractions;
     }
+
 
 	private void addShutDownHook() {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
