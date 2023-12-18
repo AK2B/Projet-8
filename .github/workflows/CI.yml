@@ -44,11 +44,16 @@ jobs:
           cache: maven
 
       - name: Compile with Maven
-        run: mvn clean install
+        run: mvn clean install -DskipTests
 
   # Job to run tests
-  test:
-    needs: [ build ]
+  name: TourGuide Application Testing
+
+on: [push]
+
+jobs:
+  test-performance:
+    needs: [build]
     runs-on: ubuntu-latest
 
     steps:
@@ -64,14 +69,57 @@ jobs:
       - name: Run TestPerformance with Maven
         run: mvn -B test --file pom.xml -Dtest=TestPerformance
 
+  test-rewards-service:
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
       - name: Run TestRewardsService with Maven
         run: mvn -B test --file pom.xml -Dtest=TestRewardsService
+
+  test-tourguide-service:
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
 
       - name: Run TestTourGuideService with Maven
         run: mvn -B test --file pom.xml -Dtest=TestTourGuideService
 
+  test-tourguide-application:
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
       - name: Run TourguideApplicationTests with Maven
         run: mvn -B test --file pom.xml -Dtest=TourguideApplicationTests
+
 
   # Job to package the project
   package:
