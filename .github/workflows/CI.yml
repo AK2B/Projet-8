@@ -47,8 +47,7 @@ jobs:
         run: mvn clean install -DskipTests
 
   # Job to run tests
-  jobs:
-    test-performance:
+  test-performance:
       needs: [build]
       runs-on: ubuntu-latest
 
@@ -116,7 +115,7 @@ jobs:
         - name: Run TourguideApplicationTests with Maven
           run: mvn -B test --file pom.xml -Dtest=TourguideApplicationTests
 
-
+  
   # Job to package the project
   package:
     needs: [ test ]
