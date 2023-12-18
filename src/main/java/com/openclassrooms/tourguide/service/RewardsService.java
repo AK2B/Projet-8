@@ -56,7 +56,7 @@ public class RewardsService {
 	    List<VisitedLocation> userLocations = user.getVisitedLocations();
 	    List<Attraction> attractions = gpsUtil.getAttractions();
 
-	    ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+	    ExecutorService executorService = Executors.newFixedThreadPool(100);
 
 	    try {
 	        List<CompletableFuture<Void>> futures = userLocations.parallelStream()
@@ -65,13 +65,17 @@ public class RewardsService {
 	                                .filter(attraction -> user.getUserRewards().stream()
 	                                        .noneMatch(r -> r.attraction.attractionName.equals(attraction.attractionName)))
 	                                .filter(attraction -> nearAttraction(visitedLocation, attraction))
-	                                .map(attraction -> CompletableFuture.runAsync(() ->
-	                                        user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user))),
-	                                        executorService)))
+	                                .map(attraction -> CompletableFuture.runAsync(() -> {
+	                                        logger.debug("Calculating rewards for user " + user.getUserId() + ", attraction " + attraction.attractionName);
+	                                        user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
+	                                        logger.debug("Rewards calculated for user " + user.getUserId() + ", attraction " + attraction.attractionName);
+	                                }, executorService)))
 	                .collect(Collectors.toList());
 
 	        CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
 	        allOf.join(); 
+
+	        logger.debug("Rewards calculation completed for user " + user.getUserId());
 
 	    } finally {
 	        executorService.shutdown();

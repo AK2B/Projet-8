@@ -25,7 +25,7 @@ public class TestPerformance {
 
 
 	@ParameterizedTest
-	@ValueSource(ints = {100, 1000})
+	@ValueSource(ints = {100, 1000, 5000, 10000, 50000, 100000})
 	public void highVolumeTrackLocation(int userNumber) {
 	    GpsUtil gpsUtil = new GpsUtil();
 	    RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
@@ -55,7 +55,7 @@ public class TestPerformance {
 
 
 	@ParameterizedTest
-	@ValueSource(ints = {100, 1000})
+	@ValueSource(ints = {100, 1000, 10000, 100000})
 	public void highVolumeGetRewards(int userNumber) {
 	    GpsUtil gpsUtil = new GpsUtil();
 	    RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
@@ -68,7 +68,7 @@ public class TestPerformance {
 	    Attraction attraction = gpsUtil.getAttractions().get(0);
 	    List<User> allUsers = tourGuideService.getAllUsers();
 
-	    allUsers.parallelStream().forEach(u -> u.addToVisitedLocations(new VisitedLocation(u.getUserId(), attraction, new Date())));
+	    allUsers.forEach(u -> u.addToVisitedLocations(new VisitedLocation(u.getUserId(), attraction, new Date())));
 
 	    allUsers.parallelStream().forEach(u -> rewardsService.calculateRewards(u));
 
