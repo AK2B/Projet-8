@@ -93,7 +93,7 @@ public class TourGuideService {
 	}
 
 	public VisitedLocation trackUserLocation(User user) {
-	    ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+	    ExecutorService executorService = Executors.newFixedThreadPool(100);
 
 	    CompletableFuture<VisitedLocation> future = CompletableFuture.supplyAsync(() -> {
 	        VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
