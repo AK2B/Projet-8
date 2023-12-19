@@ -59,7 +59,7 @@ public class RewardsService {
 	    ExecutorService executorService = Executors.newCachedThreadPool();
 
 	    try {
-	        List<CompletableFuture<Void>> futures = userLocations.parallelStream()
+	        List<CompletableFuture<Void>> futures = userLocations.stream()
 	                .flatMap(visitedLocation ->
 	                        attractions.stream()
 	                                .filter(attraction -> user.getUserRewards().stream()

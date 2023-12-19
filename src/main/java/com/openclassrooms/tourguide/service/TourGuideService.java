@@ -42,9 +42,7 @@ public class TourGuideService {
 	public final Tracker tracker;
 	boolean testMode = true;
     private final ExecutorService trackingExecutorService;
-
-    private static final int NEARBY_ATTRACTIONS_LIMIT = 5;
-    
+   
 	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
 		this.gpsUtil = gpsUtil;
 		this.rewardsService = rewardsService;
@@ -95,6 +93,13 @@ public class TourGuideService {
 		return providers;
 	}
 
+	/**
+	 * Tracks the user's location and adds it to their visited locations. If the user has visited a new location,
+	 * it calculates the rewards for the user and adds them to the user's rewards.
+	 *
+	 * @param user The user whose location to track
+	 * @return The user's most recently visited location
+	 */
 	public VisitedLocation trackUserLocation(User user) {
 	    try {
 	        CompletableFuture<VisitedLocation> future = CompletableFuture.supplyAsync(() -> {
@@ -128,7 +133,7 @@ public class TourGuideService {
         // Use parallelStream to parallelize attraction distance calculations
         List<Map<String, Object>> closestAttractions = gpsUtil.getAttractions().parallelStream()
                 .sorted(Comparator.comparingDouble(attraction -> rewardsService.getDistance(attraction, visitedLocation.location)))
-                .limit(NEARBY_ATTRACTIONS_LIMIT)
+                .limit(5)
                 .map(attraction -> {
                     // Create a map to represent an attraction with specific information
                     Map<String, Object> attractionMap = new ConcurrentHashMap<>();
