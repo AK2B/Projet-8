@@ -100,7 +100,7 @@ jobs:
         run: mvn -B test --file pom.xml -Dtest=TourguideApplicationTests
  
   test-performance:
-    needs: [build]
+    needs: [test-tourguide-application , test-tourguide-service , test-rewards-service]
     runs-on: ubuntu-latest
 
     steps:
