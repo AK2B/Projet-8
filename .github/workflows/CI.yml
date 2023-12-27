@@ -67,7 +67,7 @@ jobs:
 
   # Job to package the project
   package:
-    needs: [ test-performance ]
+    needs: [ test ]
     runs-on: ubuntu-latest
 
     steps:
