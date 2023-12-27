@@ -44,11 +44,11 @@ jobs:
           cache: maven
 
       - name: Compile with Maven
-        run: mvn clean install -DskipTests
+        run: mvn compile
 
   # Job to run tests
   
-  test-rewards-service:
+  test:
     needs: [build]
     runs-on: ubuntu-latest
 
@@ -63,58 +63,7 @@ jobs:
           cache: maven
 
       - name: Run TestRewardsService with Maven
-        run: mvn -B test --file pom.xml -Dtest=TestRewardsService
-
-  test-tourguide-service:
-    needs: [build]
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Run TestTourGuideService with Maven
-        run: mvn -B test --file pom.xml -Dtest=TestTourGuideService
-
-  test-tourguide-application:
-    needs: [build]
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Run TourguideApplicationTests with Maven
-        run: mvn -B test --file pom.xml -Dtest=TourguideApplicationTests
- 
-  test-performance:
-    needs: [test-tourguide-application , test-tourguide-service , test-rewards-service]
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Run TestPerformance with Maven
-        run: mvn -B test --file pom.xml -Dtest=TestPerformance
+        run: mvn test
 
   # Job to package the project
   package:
@@ -131,7 +80,7 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - run: mvn --batch-mode --update-snapshots verify
+      - run: mvn package -DskipTests
 
       - run: mkdir staging && cp target/*.jar staging
 

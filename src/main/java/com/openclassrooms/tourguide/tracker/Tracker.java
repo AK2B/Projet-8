@@ -20,7 +20,7 @@ public class Tracker extends Thread {
 	private final ExecutorService executorService = Executors.newCachedThreadPool(); 
 	private final TourGuideService tourGuideService;
 	private boolean stop = false;
-    private static final int BATCH_SIZE = 700; 
+    private static final int BATCH_SIZE = 1000; 
 
 
 	public Tracker(TourGuideService tourGuideService) {

@@ -41,12 +41,12 @@ public class TourGuideService {
 	private final TripPricer tripPricer = new TripPricer();
 	public final Tracker tracker;
 	boolean testMode = true;
-    private final ExecutorService trackingExecutorService;
+    private final ExecutorService executorService;
    
 	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
 		this.gpsUtil = gpsUtil;
 		this.rewardsService = rewardsService;
-        this.trackingExecutorService = Executors.newCachedThreadPool();
+        this.executorService = Executors.newCachedThreadPool();
 
 		Locale.setDefault(Locale.US);
 
@@ -109,7 +109,7 @@ public class TourGuideService {
 	                rewardsService.calculateRewards(user);
 	            }
 	            return visitedLocation;
-	        }, trackingExecutorService);
+	        }, executorService);
 
 	        return future.join();
 	    } catch (CompletionException e) {
