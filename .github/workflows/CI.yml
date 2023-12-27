@@ -62,7 +62,7 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Run TestRewardsService with Maven
+      - name: Run Test with Maven
         run: mvn test
 
   # Job to package the project
