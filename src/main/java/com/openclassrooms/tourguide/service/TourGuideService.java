@@ -94,7 +94,7 @@ public class TourGuideService {
 	}
 
 	/**
-	 * Tracks the user's location and adds it to their visited locations. If the user has visited a new location,
+	 * Tracks user's location and adds it to their visited locations. If the user has visited a new location,
 	 * it calculates the rewards for the user and adds them to the user's rewards.
 	 *
 	 * @param user The user whose location to track
